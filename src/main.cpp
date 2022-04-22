@@ -57,6 +57,55 @@ const char* text = "ESP32";
 // put your main code here, to run repeatedly:
 auto fade_px = color<rgba_pixel<32>>::black;
 
+template<typename Destination>
+void draw_alpha(Destination& lcd) {
+
+/*    draw::filled_rectangle(lcd, (srect16)lcd.bounds(), lcd_color::black);
+
+    for (int y = 0; y < lcd.dimensions().height; y += 16) {
+        for (int x = 0; x < lcd.dimensions().width; x += 16) {
+            if (0 != ((x + y) % 32)) {
+                draw::filled_rectangle(lcd,
+                                       srect16(spoint16(x, y), ssize16(16, 16)),
+                                       lcd_color::white);
+            }
+        }
+    }*/
+    randomSeed(millis());
+
+    rgba_pixel<32> px;
+    spoint16 tpa[3];
+    const uint16_t sw =
+        min(lcd.dimensions().width, lcd.dimensions().height) / 4;
+//    for (int i = 0; i < 30; ++i) {
+        px.channel<channel_name::R>((rand() % 256));
+        px.channel<channel_name::G>((rand() % 256));
+        px.channel<channel_name::B>((rand() % 256));
+        px.channel<channel_name::A>(50 + rand() % 156);
+        srect16 sr(0, 0, rand() % sw + sw, rand() % sw + sw);
+        sr.offset_inplace(rand() % (lcd.dimensions().width - sr.width()),
+                          rand() % (lcd.dimensions().height - sr.height()));
+        switch (rand() % 4) {
+            case 0:
+                draw::filled_rectangle(lcd, sr, px);
+                break;
+            case 1:
+                draw::filled_rounded_rectangle(lcd, sr, .1, px);
+                break;
+            case 2:
+                draw::filled_ellipse(lcd, sr, px);
+                break;
+            case 3:
+                tpa[0] = {int16_t(((sr.x2 - sr.x1) / 2) + sr.x1), sr.y1};
+                tpa[1] = {sr.x2, sr.y2};
+                tpa[2] = {sr.x1, sr.y2};
+                spath16 path(3, tpa);
+                draw::filled_polygon(lcd, path, px);
+                break;
+        }
+  //  }
+}
+
 void setup() {
   Serial.begin(115200);
   frame = 0;
@@ -92,13 +141,12 @@ void loop() {
       draw::resume(screen2);
     }    
   }
-  if(frame<20) {
-    draw::filled_rectangle(screen2,screen2.bounds(),fade_px);
-  } else if(frame<35) {
-    draw::filled_rectangle(screen1,screen1.bounds(),fade_px);
-  
+  if(frame&1) {
+    draw_alpha(screen2);   
+  } else {
+    draw_alpha(screen1);
   }
-  if(frame<35) {
+  if(frame<60) {
     ++frame;
   } else {
     frame = 0;
