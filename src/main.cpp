@@ -4,7 +4,7 @@
 #include <ili9341.hpp>
 #include <ssd1306.hpp>
 #include <tft_io.hpp>
-
+// our truetype font
 #include "DEFTONE.hpp"
 #include "image.h"
 #include "image3.h"
@@ -49,12 +49,18 @@ using ssd1306_bus_t = tft_i2c<>;
 using screen1_t = ili9341<LCD1_DC, LCD1_RST, LCD1_BL, ili9341_bus_t, LCD1_ROTATION, LCD1_BL_HIGH, LCD1_WRITE_SPEED, LCD1_READ_SPEED>;
 using screen2_t = ssd1306<LCD2_WIDTH, LCD2_HEIGHT, ssd1306_bus_t, LCD2_ROTATION, LCD2_BIT_DEPTH, LCD2_ADDRESS, LCD2_3_3v, LCD2_WRITE_SPEED>;
 
+// for easy access to x11 colors in the screen's native format
 using color1_t = color<typename screen1_t::pixel_type>;
 using color2_t = color<typename screen2_t::pixel_type>;
 
+// declare the screens
 screen1_t screen1;
 screen2_t screen2;
+
+// frame counter
 int frame;
+
+// title text
 const char* text = "ESP32";
 
 template <typename Destination>
