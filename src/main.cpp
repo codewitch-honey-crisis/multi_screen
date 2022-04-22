@@ -42,7 +42,7 @@ using namespace gfx;
 #define LCD2_BIT_DEPTH 8
 
 using ili9341_bus_t = tft_spi<VSPI,LCD1_CS>;
-using ssd1306_bus_t = tft_i2c_ex<0,21,22>;
+using ssd1306_bus_t = tft_i2c<>;
 
 using screen1_t = ili9341<LCD1_DC,LCD1_RST,LCD1_BL,ili9341_bus_t,LCD1_ROTATION,LCD1_BL_HIGH,LCD1_WRITE_SPEED,LCD1_READ_SPEED>;
 using screen2_t = ssd1306<LCD2_WIDTH,LCD2_HEIGHT,ssd1306_bus_t,LCD2_ROTATION,LCD2_BIT_DEPTH,LCD2_ADDRESS,LCD2_3_3v,LCD2_WRITE_SPEED>;
