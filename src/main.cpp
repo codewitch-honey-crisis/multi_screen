@@ -1,15 +1,27 @@
 #include <Arduino.h>
 
-#include <gfx_cpp14.hpp>
-#include <ili9341.hpp>
-#include <ssd1306.hpp>
+// the TFT IO bus library
+// used by the drivers below
 #include <tft_io.hpp>
+
+// the ILI9341 driver
+#include <ili9341.hpp>
+// the SSD1306 driver
+#include <ssd1306.hpp>
+
+// GFX (for C++14)
+#include <gfx_cpp14.hpp>
+
 // our truetype font
 #include "DEFTONE.hpp"
+// color image
 #include "image.h"
+// b&w image
 #include "image3.h"
 
+// import driver namespace
 using namespace arduino;
+// import GFX namespace
 using namespace gfx;
 
 // wiring is as follows for the ILI9341 display
@@ -23,8 +35,8 @@ using namespace gfx;
 #define LCD1_RST 4
 #define LCD1_BL 14
 
-#define LCD1_WRITE_SPEED 400
-#define LCD1_READ_SPEED 200
+#define LCD1_WRITE_SPEED 400 // 400% of 10MHz = 40MHz
+#define LCD1_READ_SPEED 200 // 200% of 10MHz = 20MHz
 // you may need to change this to 1 if your screen is upside down
 #define LCD1_ROTATION 3
 // if you don't see any backlight, or any display
@@ -39,7 +51,9 @@ using namespace gfx;
 #define LCD2_HEIGHT 64
 #define LCD2_3_3v true
 #define LCD2_ADDRESS 0x3C
-#define LCD2_WRITE_SPEED 800
+// if your screen isn't working, change
+// this to 400:
+#define LCD2_WRITE_SPEED 800 // 800% of 100KHz = 800KHz
 #define LCD2_ROTATION 3
 #define LCD2_BIT_DEPTH 8
 
@@ -63,10 +77,10 @@ int frame;
 // title text
 const char* text = "ESP32";
 
+// draw a random alpha blended shape
 template <typename Destination>
 void draw_alpha(Destination& lcd) {
     randomSeed(millis());
-
     rgba_pixel<32> px;
     spoint16 tpa[3];
     const uint16_t sw =
@@ -101,41 +115,50 @@ void draw_alpha(Destination& lcd) {
 void setup() {
     Serial.begin(115200);
     frame = 0;
+    // fill the screens just so we know they're alive
+    // (not really necessary)
     screen1.fill(screen1.bounds(), color1_t::white);
     screen2.fill(screen2.bounds(), color2_t::white);
 }
 
 void loop() {
-    if (!frame) {
+    if (!frame) { // first frame
+        // prepare to draw the text for screen 1
         const float text_scale1 = DEFTONE_ttf.scale(80);
         const ssize16 text_size1 = DEFTONE_ttf.measure_text({32767, 32767}, {0, 0}, text, text_scale1);
         const srect16 text_rect1 = text_size1.bounds().center((srect16)screen1.bounds());
-
+        // prepare to draw the image for screen 1
         image_jpg_stream.seek(0);
         size16 isz;
         if (gfx_result::success == jpeg_image::dimensions(&image_jpg_stream, &isz)) {
             image_jpg_stream.seek(0);
+            // draw them both
             draw::image(screen1, isz.bounds().center(screen1.bounds()), &image_jpg_stream);
             draw::text(screen1, text_rect1, {0, 0}, text, DEFTONE_ttf, text_scale1, color2_t::black, color2_t::white, true);
         }
+        // prepare to draw the text for screen 2
         const float text_scale2 = DEFTONE_ttf.scale(30);
         const ssize16 text_size2 = DEFTONE_ttf.measure_text({32767, 32767}, {0, 0}, text, text_scale2);
         const srect16 text_rect2 = text_size2.bounds().center((srect16)screen2.bounds());
-
+        // prepare to draw the image for screen 1
         image3_jpg_stream.seek(0);
         if (gfx_result::success == jpeg_image::dimensions(&image3_jpg_stream, &isz)) {
             image3_jpg_stream.seek(0);
             draw::suspend(screen2);
+            // draw them both
             draw::image(screen2, isz.bounds().center(screen2.bounds()), &image3_jpg_stream);
             draw::text(screen2, text_rect2, {0, 0}, text, DEFTONE_ttf, text_scale2, color2_t::black, color2_t::white, true, true);
             draw::resume(screen2);
         }
     }
+    // on even frames we draw to screen 1
+    // on odd frames we draw to screen 2
     if (frame & 1) {
         draw_alpha(screen2);
     } else {
         draw_alpha(screen1);
     }
+    // once we have about 30 per screen start over
     if (frame < 60) {
         ++frame;
     } else {
