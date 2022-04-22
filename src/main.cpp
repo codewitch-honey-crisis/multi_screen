@@ -14,9 +14,9 @@
 
 // our truetype font
 #include "DEFTONE.hpp"
-// color image
+// color jpg image
 #include "image.h"
-// b&w image
+// b&w jpg image
 #include "image3.h"
 
 // import driver namespace
@@ -54,14 +54,30 @@ using namespace gfx;
 // if your screen isn't working, change
 // this to 400:
 #define LCD2_WRITE_SPEED 800 // 800% of 100KHz = 800KHz
+// change this to 1 if your screen is upside down
 #define LCD2_ROTATION 3
 #define LCD2_BIT_DEPTH 8
 
 using ili9341_bus_t = tft_spi<VSPI, LCD1_CS>;
 using ssd1306_bus_t = tft_i2c<>;
 
-using screen1_t = ili9341<LCD1_DC, LCD1_RST, LCD1_BL, ili9341_bus_t, LCD1_ROTATION, LCD1_BL_HIGH, LCD1_WRITE_SPEED, LCD1_READ_SPEED>;
-using screen2_t = ssd1306<LCD2_WIDTH, LCD2_HEIGHT, ssd1306_bus_t, LCD2_ROTATION, LCD2_BIT_DEPTH, LCD2_ADDRESS, LCD2_3_3v, LCD2_WRITE_SPEED>;
+using screen1_t = ili9341<LCD1_DC, 
+                          LCD1_RST, 
+                          LCD1_BL, 
+                          ili9341_bus_t, 
+                          LCD1_ROTATION, 
+                          LCD1_BL_HIGH, 
+                          LCD1_WRITE_SPEED, 
+                          LCD1_READ_SPEED>;
+
+using screen2_t = ssd1306<LCD2_WIDTH, 
+                          LCD2_HEIGHT, 
+                          ssd1306_bus_t, 
+                          LCD2_ROTATION, 
+                          LCD2_BIT_DEPTH, 
+                          LCD2_ADDRESS, 
+                          LCD2_3_3v, 
+                          LCD2_WRITE_SPEED>;
 
 // for easy access to x11 colors in the screen's native format
 using color1_t = color<typename screen1_t::pixel_type>;
@@ -80,18 +96,27 @@ const char* text = "ESP32";
 // draw a random alpha blended shape
 template <typename Destination>
 void draw_alpha(Destination& lcd) {
+    // randomize
     randomSeed(millis());
+    // declare a pixel with an alpha channel
     rgba_pixel<32> px;
+    // points for a triangle
     spoint16 tpa[3];
+    // maximum shape width
     const uint16_t sw =
         min(lcd.dimensions().width, lcd.dimensions().height) / 4;
+    // set each channel to a random value
+    // note that the alpha channel is ranged differently
     px.channel<channel_name::R>((rand() % 256));
     px.channel<channel_name::G>((rand() % 256));
     px.channel<channel_name::B>((rand() % 256));
     px.channel<channel_name::A>(50 + rand() % 156);
+    // create a rectangle of a random size bounding the shape 
     srect16 sr(0, 0, rand() % sw + sw, rand() % sw + sw);
+    // offset it to a random location
     sr.offset_inplace(rand() % (lcd.dimensions().width - sr.width()),
                       rand() % (lcd.dimensions().height - sr.height()));
+    // choose a random shape to draw
     switch (rand() % 4) {
         case 0:
             draw::filled_rectangle(lcd, sr, px);
@@ -103,6 +128,7 @@ void draw_alpha(Destination& lcd) {
             draw::filled_ellipse(lcd, sr, px);
             break;
         case 3:
+            // create a triangle polygon
             tpa[0] = {int16_t(((sr.x2 - sr.x1) / 2) + sr.x1), sr.y1};
             tpa[1] = {sr.x2, sr.y2};
             tpa[2] = {sr.x1, sr.y2};
@@ -125,29 +151,71 @@ void loop() {
     if (!frame) { // first frame
         // prepare to draw the text for screen 1
         const float text_scale1 = DEFTONE_ttf.scale(80);
-        const ssize16 text_size1 = DEFTONE_ttf.measure_text({32767, 32767}, {0, 0}, text, text_scale1);
-        const srect16 text_rect1 = text_size1.bounds().center((srect16)screen1.bounds());
+        // measure the text
+        const ssize16 text_size1 = 
+          DEFTONE_ttf.measure_text({32767, 32767}, 
+                                    {0, 0}, 
+                                    text, 
+                                    text_scale1);
+        // center it
+        const srect16 text_rect1 = 
+          text_size1.bounds().center((srect16)screen1.bounds());
         // prepare to draw the image for screen 1
+        // ensure stream is at beginning since JPG loading doesn't seek
         image_jpg_stream.seek(0);
         size16 isz;
-        if (gfx_result::success == jpeg_image::dimensions(&image_jpg_stream, &isz)) {
+        if (gfx_result::success == 
+              jpeg_image::dimensions(&image_jpg_stream, &isz)) {
+            // start back at the beginning
             image_jpg_stream.seek(0);
             // draw them both
-            draw::image(screen1, isz.bounds().center(screen1.bounds()), &image_jpg_stream);
-            draw::text(screen1, text_rect1, {0, 0}, text, DEFTONE_ttf, text_scale1, color2_t::black, color2_t::white, true);
+            draw::image(screen1, 
+                        isz.bounds().center(screen1.bounds()), 
+                        &image_jpg_stream);
+            draw::text(screen1, 
+                      text_rect1, 
+                      {0, 0}, 
+                      text, 
+                      DEFTONE_ttf, 
+                      text_scale1, 
+                      color2_t::black, 
+                      color2_t::white, 
+                      true);
         }
         // prepare to draw the text for screen 2
         const float text_scale2 = DEFTONE_ttf.scale(30);
-        const ssize16 text_size2 = DEFTONE_ttf.measure_text({32767, 32767}, {0, 0}, text, text_scale2);
-        const srect16 text_rect2 = text_size2.bounds().center((srect16)screen2.bounds());
+        // measure the text
+        const ssize16 text_size2 = 
+          DEFTONE_ttf.measure_text({32767, 32767}, 
+                                    {0, 0}, 
+                                    text, 
+                                    text_scale2);
+        // center it
+        const srect16 text_rect2 = 
+          text_size2.bounds().center((srect16)screen2.bounds());
         // prepare to draw the image for screen 1
+        // ensure stream is at beginning since JPG loading doesn't seek
         image3_jpg_stream.seek(0);
-        if (gfx_result::success == jpeg_image::dimensions(&image3_jpg_stream, &isz)) {
+        if (gfx_result::success == 
+              jpeg_image::dimensions(&image3_jpg_stream, &isz)) {
+            // start back at the beginning
             image3_jpg_stream.seek(0);
+            // suspend so we don't see the JPG being painted
             draw::suspend(screen2);
             // draw them both
-            draw::image(screen2, isz.bounds().center(screen2.bounds()), &image3_jpg_stream);
-            draw::text(screen2, text_rect2, {0, 0}, text, DEFTONE_ttf, text_scale2, color2_t::black, color2_t::white, true, true);
+            draw::image(screen2, 
+                        isz.bounds().center(screen2.bounds()), 
+                        &image3_jpg_stream);
+            draw::text(screen2, 
+                        text_rect2, 
+                        {0, 0}, 
+                        text, 
+                        DEFTONE_ttf, 
+                        text_scale2, 
+                        color2_t::black, 
+                        color2_t::white, 
+                        true, 
+                        true);
             draw::resume(screen2);
         }
     }
