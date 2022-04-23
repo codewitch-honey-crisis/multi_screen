@@ -218,6 +218,7 @@ void loop() {
                         true);
             draw::resume(screen2);
         }
+        delay(2000);
     }
     // on even frames we draw to screen 1
     // on odd frames we draw to screen 2
@@ -230,6 +231,11 @@ void loop() {
     if (frame < 60) {
         ++frame;
     } else {
+        // before we start over copy the contents
+        // of screen 2 to the center of screen 1
+        rect16 sr = screen2.bounds().center(screen1.bounds());
+        draw::bitmap(screen1,sr,screen2,screen2.bounds());
+        delay(5000);
         frame = 0;
     }
 }
